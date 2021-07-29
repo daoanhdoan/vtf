@@ -1,0 +1,7 @@
+name: 'Views table filter'
+type: module
+description: 'Create right click context menus for views rows.'
+core_version_requirement: ^9
+package: 'DNC - Views'
+dependencies:
+  - drupal:views

@@ -1,0 +1,204 @@
+<?php
+/**
+ * @file
+ */
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function vtf_form_views_ui_edit_display_form_alter(&$form, FormStateInterface $form_state) {
+  $view = $form_state->get('view');
+  $display_id = $form_state->get('display_id');
+  $executable = $view->getExecutable();
+  if ($form_state->get('section') === 'exposed_form_options') {
+    if (!$executable->setDisplay($display_id)) {
+      $form['markup'] = ['#markup' => t('Invalid display id @display', ['@display' => $display_id])];
+      return $form;
+    }
+
+     $style = $executable->display_handler->getPlugin('style');
+     if (!isset($style->options['columns'])) {
+       // Not a table style.
+       return;
+     }
+
+     $plugin = $executable->display_handler->getPlugin('exposed_form');
+
+     $form['options']['exposed_form_options']['vtf'] = array(
+       '#type' => 'fieldset',
+       '#title' => t('Move filter to the table column'),
+       '#colapsible' => TRUE,
+       '#colapsed' => TRUE,
+       '#tree' => TRUE
+     );
+
+     $labels = $executable->display_handler->getFieldLabels();
+     $fields = $executable->display_handler->getHandlers('field');
+     $columns = array('_none' => t('<-- None -->'));
+     foreach ($fields as $field_name => $field) {
+       if (!$field->options['exclude']) {
+         $columns[$field_name] = !empty($labels[$field_name]) ? $labels[$field_name] : $field_name;
+       }
+     }
+     $filters = $executable->display_handler->getHandlers('filter');
+     foreach ($filters as $id => $filter) {
+       if ($filter->isExposed()) {
+         $form['options']['exposed_form_options']['vtf'][$id] = array(
+           '#type' => 'select',
+           '#title' => $filter->options['expose']['label'],
+           '#options' => $columns,
+           '#default_value' => !empty($plugin->options['vtf'][$id]) ? $plugin->options['vtf'][$id] : NULL,
+         );
+       }
+     }
+
+     $form['options']['exposed_form_options']['vtf_trigger_text'] = array(
+       '#type' => 'textfield',
+       '#title' => t('Trigger Text'),
+       '#default_value' => !empty($plugin->options['vtf_trigger_text']) ? $plugin->options['vtf_trigger_text'] : ""
+     );
+     $form['options']['exposed_form_options']['vtf_trigger_active'] = array(
+       '#type' => 'textfield',
+       '#title' => t('Trigger Active'),
+       '#default_value' => !empty($plugin->options['vtf_trigger_active']) ? $plugin->options['vtf_trigger_active'] : ""
+     );
+  }
+}
+
+/**
+ * Implements @see hook_form_FORM_ID_alter().
+ */
+function vtf_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id)
+{
+  $view = $form_state->get('view');
+  if (!$view) {
+    return;
+  }
+
+  $form['#view'] = $view;
+
+  $style = $view->display_handler->getPlugin('style');
+  if (!isset($style->options['columns'])) {
+    // Not a table style.
+    return;
+  }
+
+  $exposed_options = $view->display_handler->getOption('exposed_form');
+  if (empty($exposed_options['options']['vtf'])) {
+    return;
+  }
+
+  $enabled_vtf = FALSE;
+
+  foreach ($exposed_options['options']['vtf'] as $filter => $column) {
+    if ($column !== '_none') {
+      $name = !empty($form["{$filter}_wrapper"]) ? "{$filter}_wrapper" : (!empty($form[$filter]) ? $filter : NULL);
+      $element = &$form[$name];
+      if ($element) {
+        $wrapper = "<div id=\"filter-{$view->id()}-{$view->current_display}-{$filter}\" class=\"vtf-filter-widget visually-hidden\">";
+        $prefix = [!empty($element['#prefix']) ? $element['#prefix'] : "", $wrapper];
+        $suffix = ["</div>", !empty($element['#suffix']) ? $element['#suffix'] : ""];
+        $element['#prefix'] = implode("\n", $prefix);
+        $element['#suffix'] = implode("\n", $suffix);
+        $element['#title_display'] = "invisible";
+        $enabled_vtf = TRUE;
+      }
+    }
+  }
+
+  if ($enabled_vtf) {
+    $form['#attached']['library'][] = 'vtf/vtf';
+
+    $form['vtf'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $view->id() . ':' . $view->current_display,
+      '#attributes' => array('class' => array('vtf')),
+      '#chosen' => FALSE
+    );
+    if (!empty($form['#attributes']['class'])) {
+      $form['#attributes']['class'][] = 'vtf-form';
+    } else {
+      $form['#attributes']['class'] = array('vtf-form');
+    }
+  }
+}
+
+/**
+ *
+ */
+function vtf_filter_is_empty($input, $filter)
+{
+  $ret = TRUE;
+  if (!isset($input[$filter])) {
+    return TRUE;
+  }
+  else {
+    if (is_array($input[$filter])) {
+      foreach(array_keys($input[$filter]) as $key) {
+        if(!($ret = vtf_filter_is_empty($input[$filter], $key))) {
+          break;
+        }
+      }
+    }
+    else {
+      if (!empty($input[$filter]) && $input[$filter] !== 'All') {
+        $ret = FALSE;
+      }
+    }
+  }
+  return $ret;
+}
+
+/**
+ * Preprocess the primary theme implementation for a view.
+ */
+function vtf_preprocess(&$vars, $hook)
+{
+  if (empty(preg_match("/.*_?table_?.*/", $hook))){
+    return;
+  }
+  $view = !empty($vars['view']) ? $vars['view'] : NULL;
+  if (!$view) {
+    return;
+  }
+  if (!$view->display_handler->displaysExposed()) {
+    return;
+  }
+  $filters = $view->display_handler->getHandlers('filter');
+  $input = $view->getExposedInput();
+  $settings = array('widgets' => array());
+  $exposed_options = $view->display_handler->getOption('exposed_form');
+  if (empty($exposed_options['options']['vtf'])) {
+    return;
+  }
+
+  foreach ($exposed_options['options']['vtf'] as $filter => $column) {
+    if ((!isset($vars['header'][$column])) || (!isset($filters[$filter]->options['expose']['identifier']))) {
+      continue;
+    }
+    $classes = array('vtf-filter-header', 'vtf-filter-header-' . Html::cleanCssIdentifier($filter));
+
+    if (!vtf_filter_is_empty($input, $filter)) {
+      $classes[] = 'vtf-active';
+    }
+
+    $identifier = $filters[$filter]->options['expose']['identifier'];
+    $settings['filters'][$filter] = $identifier;
+    $vars['header'][$column]['attributes']->setAttribute('filtername', "{$view->id()}-{$view->current_display}-{$filter}");
+    $vars['header'][$column]['attributes']->addClass(implode(" ", $classes));
+  }
+  if (empty($settings)) {
+    return;
+  }
+  $settings['view_id'] = $view->id();
+  $settings['display_id'] = $view->current_display;
+  $settings['text'] = $exposed_options['options']['vtf_trigger_text'];
+  $settings['active_text'] = $exposed_options['options']['vtf_trigger_active'];
+
+  $vars['#attached']['drupalSettings']['vtf'] = array($view->id() . ':' . $view->current_display => $settings);
+  $vars['attributes']['class'] = array_merge(!empty($vars['attributes']['class']) ? $vars['attributes']['class'] : [], array('views-table'));
+}

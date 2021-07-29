@@ -1,0 +1,58 @@
+.vtf-filter-widget {
+  z-index: 999999;
+  background-color: #fff;
+  border: 1px solid rgba(185, 185, 185, 0.63);
+  display: inline-block;
+  width: auto;
+  padding: 5px;
+}
+
+.vtf-filter-widget label {
+  display: none;
+}
+
+.vtf-table-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.views-table tr th {
+  padding-right: 20px;
+  position: relative;
+}
+
+.views-table tr th .vtf-button {
+  display: inline-block;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  margin-top: -12px;
+  cursor: context-menu;
+  background: url("../images/filter.png") right center/60% no-repeat;
+  color: transparent;
+  width: 20px;
+  height: 20px;
+}
+
+.views-table tr th .vtf-button:hover, .views-table tr th.vtf-active .vtf-button {
+  color: transparent;
+}
+.vtf-filter-header {
+  position: relative;
+
+}
+.views-table tr th.vtf-active .vtf-button, .views-table tr th .vtf-button-active, .views-table tr th .vtf-button:hover {
+  color: transparent;
+  background: url("../images/filter-active.png") right center/60% no-repeat;
+}
+
+.element-invisible {
+  position: absolute !important;
+  clip: rect(1px 1px 1px 1px);
+  clip: rect(1px,1px,1px,1px);
+  overflow: hidden;
+  height: 1px;
+}
+.ui-autocomplete {
+  z-index: 9999999;
+}

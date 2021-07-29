@@ -1,0 +1,11 @@
+vtf:
+  js:
+    js/vtf.js: {}
+  css:
+    component:
+      css/vtf.css: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.ui.position
+    - core/jquery.once
+    - core/drupalSettings
