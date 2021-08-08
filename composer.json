@@ -2,11 +2,14 @@
     "name" : "daoanhdoan/vtf",
     "description": "Views table filter - Create right click context menus for views rows.",
     "type" : "drupal-custom-module",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0+",
     "extra": {
         "installer-name": "vtf"
     },
     "require": {
-        "drupal/views": "*"
+        "drupal/views": "*",
+        "drupal/filter": "*",
+        "drupal/user": "*",
+        "drupal/system": "*"
     }
 }
