@@ -74,10 +74,13 @@
                   options.my = "right top";
                   options.at = "left bottom";
                 }
-                var offset = this.offset();
-                offset.top += this.outerHeight();
-                offset.left += this.outerWidth() / 2 - $menu.outerWidth() / 2;
-                $(this).css(offset);
+
+                var offset = $(this).offset(), $window = $(window), root = settings.vtf[view].widgets[filter];
+                // while this looks kinda awful, it's the best way to avoid
+                // unnecessarily calculating any positions
+                offset.top += $window.scrollTop();
+                offset.left += $window.scrollLeft();
+                settings.vtf[view].widgets[filter].css(offset);
 
                 settings.vtf[view].widgets[filter].position(options);
               });
