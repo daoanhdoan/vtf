@@ -78,6 +78,7 @@
                 offset.top += this.outerHeight();
                 offset.left += this.outerWidth() / 2 - $menu.outerWidth() / 2;
                 $(this).css(offset);
+
                 settings.vtf[view].widgets[filter].position(options);
               });
             });
