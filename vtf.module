@@ -32,7 +32,7 @@ function vtf_form_views_ui_edit_display_form_alter(&$form, FormStateInterface $f
        '#type' => 'fieldset',
        '#title' => t('Move filter to the table column'),
        '#colapsible' => TRUE,
-       '#colapsed' => TRUE,
+       '#colapsed' => FALSE,
        '#tree' => TRUE
      );
 
